@@ -78,26 +78,25 @@ const displayMovements = function (movements) {
   })
 }
 
-displayMovements(account1.movements);
+
 
 const calcDisplayBalance = function(movements){
   const balance = movements.reduce((acc,value) => acc + value,0);
   labelBalance.textContent = `${balance} £`;
 };
-calcDisplayBalance(account1.movements);
 
-const calcDisplaySummary = function(movements) {
-  const incomes = movements.filter(mov => mov > 0).reduce((acc,value) => acc + value,0);
+
+const calcDisplaySummary = function(acc) {
+  const incomes = acc.movements.filter(mov => mov > 0).reduce((acc,value) => acc + value,0);
   labelSumIn.textContent = `${incomes}£`;
-  const withdrawalTotal = movements.filter(mov => mov < 0).reduce((acc,value) => acc + Math.abs(value),0);
+  const withdrawalTotal =acc.movements.filter(mov => mov < 0).reduce((acc,value) => acc + Math.abs(value),0);
   labelSumOut.textContent = `${withdrawalTotal}£`;
-
-  const interest = movements.filter(mov => mov > 0).map(deposit => deposit * 1.2 / 100).filter((int,i,arr) => int >= 1).reduce((acc,int) => acc + int,0);
+  
+  const interest = acc.movements.filter(mov => mov > 0).map(deposit => deposit * acc.interestRate / 100).filter((int,i,arr) => int >= 1).reduce((acc,int) => acc + int,0);
   labelSumInterest.textContent = `${interest}£`;
 
 };
 
-calcDisplaySummary(account1.movements)
 
 const createUserNames = function (accs) {
   accs.forEach(function (acc) {
@@ -106,3 +105,32 @@ const createUserNames = function (accs) {
 };
 
 createUserNames(accounts);
+
+//EVENT HANDLERS
+let currentAccount;
+
+btnLogin.addEventListener('click', function(e){
+  //prevent form from submitting
+  e.preventDefault();
+  
+  currentAccount = accounts.find(acc => acc.username === inputLoginUsername.value);
+
+  console.log(currentAccount);
+
+  if(currentAccount?.pin === Number(inputLoginPin.value)) {  labelWelcome.textContent = ` Welcome back ${currentAccount.owner.split(' ')[0]}`;
+  containerApp.style.opacity = 100;
+  inputLoginUsername.value = inputLoginPin.value = '';
+
+  inputLoginPin.blur();
+  
+  displayMovements(currentAccount.movements);
+  calcDisplayBalance(currentAccount.movements);
+  calcDisplaySummary(currentAccount)
+
+}else{
+  containerApp.style.opacity = 0;
+  inputLoginUsername.value = inputLoginPin.value = '';
+  inputLoginPin.blur();
+  labelWelcome.textContent ='Wrong Username or Password!!';
+}
+});
