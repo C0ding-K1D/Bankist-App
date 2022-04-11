@@ -61,10 +61,12 @@ const inputLoanAmount = document.querySelector('.form__input--loan-amount');
 const inputCloseUsername = document.querySelector('.form__input--user');
 const inputClosePin = document.querySelector('.form__input--pin');
 
-const displayMovements = function (movements) {
+const displayMovements = function (movements,sort = false) {
   containerMovements.innerHTML = '';
 
-  movements.forEach(function (mov, i) {
+const movs = sort ? movements.slice().sort((a,b) => a - b) : movements;
+
+  movs.forEach(function (mov, i) {
     const type = mov > 0 ? 'deposit' : 'withdrawal';
 
     const html = `
@@ -80,9 +82,9 @@ const displayMovements = function (movements) {
 
 
 
-const calcDisplayBalance = function(movements){
-  const balance = movements.reduce((acc,value) => acc + value,0);
-  labelBalance.textContent = `${balance} £`;
+const calcDisplayBalance = function(acc){
+  acc.balance = acc.movements.reduce((acc,value) => acc + value,0);
+  labelBalance.textContent = `${acc.balance} £`;
 };
 
 
@@ -106,6 +108,11 @@ const createUserNames = function (accs) {
 
 createUserNames(accounts);
 
+const updateUi = function(acc){
+  displayMovements(acc.movements);
+  calcDisplayBalance(acc);
+  calcDisplaySummary(acc)
+}
 //EVENT HANDLERS
 let currentAccount;
 
@@ -122,11 +129,7 @@ btnLogin.addEventListener('click', function(e){
   inputLoginUsername.value = inputLoginPin.value = '';
 
   inputLoginPin.blur();
-  
-  displayMovements(currentAccount.movements);
-  calcDisplayBalance(currentAccount.movements);
-  calcDisplaySummary(currentAccount)
-
+  updateUi(currentAccount)
 }else{
   containerApp.style.opacity = 0;
   inputLoginUsername.value = inputLoginPin.value = '';
@@ -134,3 +137,59 @@ btnLogin.addEventListener('click', function(e){
   labelWelcome.textContent ='Wrong Username or Password!!';
 }
 });
+
+btnTransfer.addEventListener('click', function(e){
+  e.preventDefault();
+  const amount = Number(inputTransferAmount.value);
+  const receiverAccount = accounts.find(acc => acc.username === inputTransferTo.value)
+  
+  if(amount > 0 && receiverAccount && currentAccount.balance >= amount && receiverAccount?.username !== currentAccount.username){
+    currentAccount.movements.push(-amount);
+    receiverAccount.movements.push(amount);
+    updateUi(currentAccount)
+  }else{
+    alert('Double check transfer to username & ensure your balance does not exceed transfer amount')
+    
+  }
+  inputTransferTo.value = inputTransferAmount.value = '';
+
+})
+
+btnLoan.addEventListener('click', function(e){
+  e.preventDefault();
+  const amount = Number(inputLoanAmount.value);
+  
+  if(amount > 0 && currentAccount.movements.some(mov => mov >= amount /10 )){
+    currentAccount.movements.push(amount);
+    updateUi(currentAccount);
+    inputLoanAmount.value = '';
+  }else{
+   alert('Your loan request has been denied at this time')
+  }
+})
+
+btnClose.addEventListener('click', function(e) {
+  e.preventDefault();
+  
+  if(inputCloseUsername.value === currentAccount.username && currentAccount?.pin === Number(inputClosePin.value)) {
+    const currentAccountIndex = accounts.findIndex(acc => acc.username === currentAccount.username);
+    console.log(currentAccountIndex);
+    accounts.splice(currentAccountIndex,1);
+    containerApp.style.opacity = 0;
+    labelWelcome.textContent = `We hope you return soon ${currentAccount.owner.split(' ')[0]}`;
+    console.log(accounts);
+  }else{
+    alert('Wrong username or pin, Try Again.')
+  };
+  inputCloseUsername.value = inputClosePin.value = '';
+});
+console.log(accounts);
+
+let sorted = false;
+
+btnSort.addEventListener('click', function(e){
+  e.preventDefault();
+  displayMovements(currentAccount.movements, !sorted);
+  sorted = !sorted;
+
+})
